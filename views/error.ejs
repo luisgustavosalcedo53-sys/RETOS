@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#05080f">
+  <title><%= title %> · Panel IoT</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="page-glow" aria-hidden="true"></div>
+  <main class="error-page">
+    <a class="brand" href="/" aria-label="Panel IoT, inicio">
+      <span class="brand-mark" aria-hidden="true">
+        <svg class="icon icon--brand" viewBox="0 0 32 32" focusable="false">
+          <path d="M16 3.5 27 9.8v12.4L16 28.5 5 22.2V9.8L16 3.5Z"></path>
+          <path d="M11 20.5v-4.8l5-2.9 5 2.9v4.8"></path>
+          <circle class="brand-node" cx="16" cy="15.4" r="1.8"></circle>
+        </svg>
+      </span>
+      <span class="brand-name">Nexo<span>IoT</span></span>
+    </a>
+    <section class="card error-card">
+      <p class="error-code"><%= status %></p>
+      <h1><%= title %></h1>
+      <p><%= message %></p>
+      <a class="btn-primary" href="/">Volver al panel</a>
+    </section>
+    <p class="footer-note">Panel IoT · <span><%= year %></span></p>
+  </main>
+</body>
+</html>

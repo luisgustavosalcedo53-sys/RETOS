@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#05080f">
+  <meta name="description" content="Panel IoT para visualizar un potenciómetro ESP32 por MQTT y controlar un LED en tiempo real.">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="page-glow" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/" aria-label="Panel IoT, inicio">
+        <span class="brand-mark" aria-hidden="true">
+          <svg class="icon icon--brand" viewBox="0 0 32 32" focusable="false">
+            <path d="M16 3.5 27 9.8v12.4L16 28.5 5 22.2V9.8L16 3.5Z"></path>
+            <path d="M11 20.5v-4.8l5-2.9 5 2.9v4.8"></path>
+            <circle class="brand-node" cx="16" cy="15.4" r="1.8"></circle>
+          </svg>
+        </span>
+        <span class="brand-name">Nexo<span>IoT</span></span>
+      </a>
+
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a class="nav-link is-active" href="#panel">Panel</a>
+        <a class="nav-link" href="#historico">Histórico</a>
+        <a class="nav-link" href="#control">Control</a>
+        <a class="nav-link" href="#eventos">Eventos</a>
+      </nav>
+
+      <div class="topbar-meta">
+        <div class="clock" title="Hora local del navegador">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="8.5"></circle>
+            <path d="M12 7.5v5l3 1.8"></path>
+          </svg>
+          <time id="clock" datetime="">--:--:--</time>
+        </div>
+        <div class="status-pill" id="brokerPill" data-state="connecting" role="status" aria-live="polite">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span id="brokerPillText">Conectando…</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="shell">
+    <section class="page-head" id="panel">
+      <div class="page-head-copy">
+        <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span>Casa · Monitoreo en tiempo real</p>
+        <h1>Potenciómetro y LED</h1>
+        <p class="page-sub">Lecturas del ESP32 por MQTT y control del LED desde el panel, sin recargar la página.</p>
+      </div>
+      <div class="head-actions">
+        <span class="chip">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <rect x="7" y="7" width="10" height="10" rx="2"></rect>
+            <path d="M10 3v3M14 3v3M10 18v3M14 18v3M3 10h3M3 14h3M18 10h3M18 14h3"></path>
+          </svg>
+          ESP32
+        </span>
+        <span class="chip">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M4 9.5a12 12 0 0 1 16 0M7 13a8 8 0 0 1 10 0M10 16.5a3.5 3.5 0 0 1 4 0"></path>
+            <circle class="icon-fill" cx="12" cy="20" r="1"></circle>
+          </svg>
+          MQTT
+        </span>
+        <button type="button" class="icon-btn" id="refreshBtn" title="Volver a cargar el estado" aria-label="Volver a cargar el estado">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M20 11a8 8 0 1 0-2.3 6.7"></path>
+            <path d="M20 5v6h-6"></path>
+          </svg>
+        </button>
+        <button type="button" class="icon-btn" id="fullscreenBtn" title="Pantalla completa" aria-label="Alternar pantalla completa">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"></path>
+          </svg>
+        </button>
+      </div>
+    </section>
+
+    <div class="alert" id="alertBanner" data-type="warning" role="alert" hidden>
+      <span class="alert-icon" aria-hidden="true">
+        <svg class="icon" viewBox="0 0 24 24" focusable="false">
+          <path d="M12 3.5 21 19H3L12 3.5Z"></path>
+          <path d="M12 9v4.5"></path>
+          <circle class="icon-fill" cx="12" cy="16.5" r="0.9"></circle>
+        </svg>
+      </span>
+      <div class="alert-copy">
+        <strong id="alertTitle">Aviso del sistema</strong>
+        <p id="alertText"></p>
+      </div>
+      <button type="button" class="alert-dismiss" id="alertDismiss" aria-label="Cerrar aviso">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="m6 6 12 12M18 6 6 18"></path>
+        </svg>
+      </button>
+    </div>
+
+    <main class="grid" aria-label="Panel de monitoreo">
+      <section class="card gauge-card" aria-labelledby="gaugeHeading">
+        <div class="card-head">
+          <div class="card-title">
+            <span class="icon-tile" aria-hidden="true">
+              <svg class="icon" viewBox="0 0 24 24" focusable="false">
+                <path d="M5 17a8 8 0 1 1 14 0"></path>
+                <path d="m12 13 4-4"></path>
+                <circle class="icon-fill" cx="12" cy="13" r="1.6"></circle>
+              </svg>
+            </span>
+            <div>
+              <p class="card-kicker">Sensor analógico</p>
+              <h2 id="gaugeHeading">Potenciómetro</h2>
+            </div>
+          </div>
+          <span class="badge" id="potStatus" data-state="idle">Esperando datos</span>
+        </div>
+
+        <div class="gauge-wrap">
+          <svg class="gauge-svg" viewBox="0 0 300 170" role="img" aria-labelledby="gaugeTitle">
+            <title id="gaugeTitle">Indicador de nivel del potenciómetro</title>
+            <defs>
+              <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop class="gauge-stop-1" offset="0%"></stop>
+                <stop class="gauge-stop-2" offset="55%"></stop>
+                <stop class="gauge-stop-3" offset="100%"></stop>
+              </linearGradient>
+            </defs>
+            <path class="gauge-track" d="M 30 150 A 120 120 0 0 1 270 150" pathLength="100"></path>
+            <path class="gauge-progress" id="gaugeProgress" d="M 30 150 A 120 120 0 0 1 270 150" pathLength="100" stroke-dasharray="0 100"></path>
+          </svg>
+          <div class="gauge-readout">
+            <span class="gauge-number" id="potValue">--</span>
+            <span class="gauge-percent" id="potPercent">-- %</span>
+          </div>
+        </div>
+        <div class="gauge-scale" aria-hidden="true">
+          <span>0</span>
+          <span class="scale-mid">recorrido</span>
+          <span id="gaugeMax">4095</span>
+        </div>
+        <p class="card-note">Valor ADC de 12 bits · <span id="gaugeNote">0 a 4095</span></p>
+      </section>
+
+      <div class="metric-stack">
+        <article class="card metric-card">
+          <div class="metric-top">
+            <span class="icon-tile icon-tile--sm" aria-hidden="true">
+              <svg class="icon" viewBox="0 0 24 24" focusable="false">
+                <path d="M4 17V9M10 17V5M16 17v-6M22 17V7"></path>
+              </svg>
+            </span>
+            <span class="metric-label">Valor actual</span>
+          </div>
+          <div class="metric-body">
+            <strong id="metricValue">--</strong>
+            <span class="metric-unit">ADC</span>
+          </div>
+          <p class="metric-sub" id="metricValueSub">Sin lecturas todavía</p>
+        </article>
+
+        <article class="card metric-card" id="metricLedCard" data-state="unknown">
+          <div class="metric-top">
+            <span class="icon-tile icon-tile--sm" aria-hidden="true">
+              <svg class="icon" viewBox="0 0 24 24" focusable="false">
+                <path d="M9 18h6M10 21h4"></path>
+                <path d="M8.5 14.5A5.5 5.5 0 1 1 15.5 14.5c-.9.7-1.5 1.5-1.5 2.5h-4c0-1-.6-1.8-1.5-2.5Z"></path>
+              </svg>
+            </span>
+            <span class="metric-label">Estado del LED</span>
+          </div>
+          <div class="metric-body">
+            <strong id="metricLed">SIN DATOS</strong>
+          </div>
+          <p class="metric-sub" id="metricLedSub">Esperando estado del dispositivo</p>
+        </article>
+
+        <article class="card metric-card">
+          <div class="metric-top">
+            <span class="icon-tile icon-tile--sm" aria-hidden="true">
+              <svg class="icon" viewBox="0 0 24 24" focusable="false">
+                <circle cx="12" cy="12" r="8.5"></circle>
+                <path d="M12 7.5v5l3 1.8"></path>
+              </svg>
+            </span>
+            <span class="metric-label">Última lectura</span>
+          </div>
+          <div class="metric-body">
+            <strong id="metricLast">--:--:--</strong>
+          </div>
+          <p class="metric-sub" id="metricLastSub">Sin lecturas todavía</p>
+        </article>
+      </div>
+
+      <section class="card chart-card" id="historico" aria-labelledby="chartHeading">
+        <div class="card-head chart-head">
+          <div class="card-title">
+            <span class="icon-tile" aria-hidden="true">
+              <svg class="icon" viewBox="0 0 24 24" focusable="false">
+                <path d="M4 19V5M4 19h16"></path>
+                <path d="m7 15 4-5 3 3 5-7"></path>
+              </svg>
+            </span>
+            <div>
+              <p class="card-kicker">Serie temporal</p>
+              <h2 id="chartHeading">Histórico de lecturas</h2>
+            </div>
+          </div>
+          <div class="chart-stats" aria-label="Estadísticas de la gráfica">
+            <div><span>Mín</span><strong id="chartMin">--</strong></div>
+            <div><span>Máx</span><strong id="chartMax">--</strong></div>
+            <div><span>Media</span><strong id="chartAvg">--</strong></div>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chartCanvas" role="img" aria-label="Gráfica de las últimas lecturas del potenciómetro. Aún no hay datos."></canvas>
+          <p class="chart-empty" id="chartEmpty">Esperando lecturas del ESP32…</p>
+        </div>
+        <div class="chart-legend">
+          <span><i class="legend-line" aria-hidden="true"></i>Nivel del potenciómetro (%)</span>
+          <span id="chartCount">0 muestras</span>
+        </div>
+      </section>
+
+      <section class="card led-card" id="control" data-state="unknown" aria-labelledby="ledHeading">
+        <div class="card-head">
+          <div class="card-title">
+            <span class="icon-tile" aria-hidden="true">
+              <svg class="icon" viewBox="0 0 24 24" focusable="false">
+                <path d="M9 18h6M10 21h4"></path>
+                <path d="M8.5 14.5A5.5 5.5 0 1 1 15.5 14.5c-.9.7-1.5 1.5-1.5 2.5h-4c0-1-.6-1.8-1.5-2.5Z"></path>
+              </svg>
+            </span>
+            <div>
+              <p class="card-kicker">Actuador</p>
+              <h2 id="ledHeading">Control del LED</h2>
+            </div>
+          </div>
+          <span class="badge" id="ledBadge" data-state="idle">Sin datos</span>
+        </div>
+
+        <div class="led-visual">
+          <div class="led-orb" aria-hidden="true">
+            <svg class="led-bulb" viewBox="0 0 64 64" focusable="false">
+              <path d="M32 7a17 17 0 0 0-10.5 30.4c2 1.6 3 3.6 3 6.1h15c0-2.5 1-4.5 3-6.1A17 17 0 0 0 32 7Z"></path>
+              <path d="M25 49h14M27.5 55h9"></path>
+              <path class="led-ray" d="M32 1v2M9 12l1.8 1M55 12l-1.8 1M6 34h2M56 34h2"></path>
+            </svg>
+          </div>
+          <p class="led-state" id="ledStateLabel">LED sin estado</p>
+          <p class="led-sub" id="ledSubLabel">Conecta al broker para controlar el LED.</p>
+        </div>
+
+        <div class="led-toggle" id="ledToggle" data-state="unknown" role="group" aria-label="Enviar orden al LED">
+          <button type="button" class="led-option" data-command="OFF" aria-pressed="false" disabled>
+            <span class="led-option-dot" aria-hidden="true"></span>
+            Apagar
+          </button>
+          <button type="button" class="led-option" data-command="ON" aria-pressed="false" disabled>
+            <span class="led-option-dot" aria-hidden="true"></span>
+            Encender
+          </button>
+        </div>
+
+        <p class="control-hint">Órdenes ON/OFF por MQTT · <code id="ledTopicHint">casa/led</code></p>
+        <p class="control-hint control-hint--muted" id="ledConfirmHint">La confirmación se lee de <code>casa/led/estado</code>.</p>
+      </section>
+
+      <section class="card events-card" id="eventos" aria-labelledby="eventsHeading">
+        <div class="card-head">
+          <div class="card-title">
+            <span class="icon-tile" aria-hidden="true">
+              <svg class="icon" viewBox="0 0 24 24" focusable="false">
+                <path d="M5 5h14v14H5z"></path>
+                <path d="m8 10 2 2-2 2M12.5 14H16"></path>
+              </svg>
+            </span>
+            <div>
+              <p class="card-kicker">Actividad reciente</p>
+              <h2 id="eventsHeading">Últimos mensajes y eventos</h2>
+            </div>
+          </div>
+          <button type="button" class="text-btn" id="clearEvents">Limpiar vista</button>
+        </div>
+        <ol class="event-list" id="eventList" aria-live="polite" aria-relevant="additions"></ol>
+        <p class="empty-state" id="eventEmpty">Todavía no hay eventos. La actividad del broker aparecerá aquí.</p>
+      </section>
+
+      <section class="card details-card" aria-labelledby="detailsHeading">
+        <div class="card-head">
+          <div class="card-title">
+            <span class="icon-tile" aria-hidden="true">
+              <svg class="icon" viewBox="0 0 24 24" focusable="false">
+                <path d="M8 12h8M12 8v8"></path>
+                <circle cx="12" cy="12" r="8.5"></circle>
+              </svg>
+            </span>
+            <div>
+              <p class="card-kicker">Diagnóstico</p>
+              <h2 id="detailsHeading">Conexión</h2>
+            </div>
+          </div>
+        </div>
+        <dl class="detail-list">
+          <div><dt>Broker</dt><dd id="brokerLabel">—</dd></div>
+          <div><dt>Transporte</dt><dd id="transportLabel">—</dd></div>
+          <div><dt>Conectado desde</dt><dd id="mqttSinceLabel">—</dd></div>
+          <div><dt>Lecturas recibidas</dt><dd id="readingsCount">0</dd></div>
+          <div><dt>Tópico de lecturas</dt><dd><code id="potTopicLabel">casa/potenciometro</code></dd></div>
+          <div><dt>Tópico de control</dt><dd><code id="ledTopicLabel">casa/led</code></dd></div>
+          <div><dt>Confirmación LED</dt><dd><code id="stateTopicLabel">casa/led/estado</code></dd></div>
+          <div><dt>Tiempo activo</dt><dd id="serverUptime">—</dd></div>
+        </dl>
+        <p class="details-note">Los secretos MQTT nunca se envían al navegador.</p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>Proyecto académico IoT · Node.js + Express + MQTT</p>
+      <p>Actualización en vivo por WebSocket · <span><%= year %></span></p>
+    </footer>
+  </div>
+
+  <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="false"></div>
+
+  <noscript>
+    <div class="noscript">Este panel necesita JavaScript para actualizar las lecturas en tiempo real.</div>
+  </noscript>
+
+  <script src="/socket.io/socket.io.js" defer></script>
+  <script src="/js/dashboard.js" defer></script>
+</body>
+</html>

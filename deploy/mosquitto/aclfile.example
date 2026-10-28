@@ -1,0 +1,30 @@
+# ACL de ejemplo para /etc/mosquitto/aclfile
+# Copia este archivo, renombra los usuarios si lo necesitas y ajusta los tópicos.
+# Los nombres de usuario deben coincidir exactamente con los creados con
+# mosquitto_passwd. No agregues contraseñas aquí.
+
+# Dashboard web: lee el potenciómetro, publica órdenes y lee la confirmación.
+user dashboard
+topic read casa/potenciometro
+topic write casa/led
+topic read casa/led/estado
+
+# ESP32: publica lecturas, recibe órdenes y publica el estado real del LED.
+user esp32
+topic write casa/potenciometro
+topic read casa/led
+topic write casa/led/estado
+
+# Cuenta opcional de solo lectura para observación o capturas.
+# Si no la necesitas, elimina este bloque y no crees el usuario.
+user monitor
+topic read casa/#
+
+# Para agregar a otro integrante con permisos de solo lectura:
+# user MQTT_USUARIO_2
+# topic read casa/potenciometro
+# topic read casa/led/estado
+#
+# Evita en el servidor público:
+#   topic readwrite #
+#   allow_anonymous true

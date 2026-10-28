@@ -1,0 +1,28 @@
+# Dependencias
+node_modules/
+
+# Secretos y configuración local
+.env
+.env.*
+!.env.example
+firmware/**/secrets.h
+
+# Claves y certificados privados
+*.pem
+*.ppk
+*.key
+*.p12
+*.pfx
+
+# Registros y temporales
+*.log
+npm-debug.log*
+coverage/
+.nyc_output/
+
+# Editores y sistema operativo
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

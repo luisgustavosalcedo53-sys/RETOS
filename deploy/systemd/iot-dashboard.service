@@ -1,0 +1,39 @@
+# /etc/systemd/system/iot-dashboard.service
+# Servicio del dashboard. El usuario iotdash no tiene shell ni privilegios sudo.
+# Ajusta WorkingDirectory si instalas el proyecto en otra ruta.
+
+[Unit]
+Description=Panel IoT MQTT (potenciometro y LED)
+Documentation=file:/opt/iot-dashboard/README.md
+After=network-online.target mosquitto.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=iotdash
+Group=iotdash
+WorkingDirectory=/opt/iot-dashboard
+# La aplicación lee /opt/iot-dashboard/.env con dotenv.
+# No se usa EnvironmentFile para evitar dos fuentes de configuración distintas.
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+KillSignal=SIGTERM
+
+# Endurecimiento básico compatible con Node.js.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
